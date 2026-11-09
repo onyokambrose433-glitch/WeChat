@@ -134,10 +134,7 @@ fun ProfileScreen(
                     // Digital Identity Card
                     item {
                         Box(modifier = Modifier.padding(16.dp)) {
-                            DigitalIdCard(
-                                user = user,
-                                onShare = { /* Share simulation */ }
-                            )
+                            DigitalIdCard(user = user)
                         }
                     }
                 }

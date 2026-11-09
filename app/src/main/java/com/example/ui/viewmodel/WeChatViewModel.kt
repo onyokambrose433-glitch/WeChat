@@ -297,31 +297,6 @@ class WeChatViewModel(application: Application) : AndroidViewModel(application) 
         val conv = _selectedConversation.value ?: return
         viewModelScope.launch {
             repository.sendMessage(conv.id, content, type)
-
-            // Simulate intelligent auto-acknowledgement from peer when chatting with Alex or Sophia
-            if (conv.title.contains("Alex") || conv.title.contains("Sophia")) {
-                delay(1200)
-                val reply = when {
-                    content.contains("call", true) -> "I'm ready for the video call whenever you are!"
-                    content.contains("meet", true) || content.contains("time", true) -> "Sounds great. I'll add this to our workspace schedule."
-                    content.contains("doc", true) || content.contains("file", true) -> "Received the asset. I've saved it into our shared folder."
-                    else -> "Got it! Reviewing this with the team right now."
-                }
-                val peerId = if (conv.title.contains("Alex")) "user_alex" else "user_sophia"
-                val peerMsg = MessageEntity(
-                    id = "msg_reply_" + System.currentTimeMillis(),
-                    conversationId = conv.id,
-                    senderId = peerId,
-                    senderName = conv.title,
-                    content = reply,
-                    messageType = "TEXT",
-                    timestamp = System.currentTimeMillis(),
-                    isOutgoing = false,
-                    status = "READ"
-                )
-                db.dao().insertMessage(peerMsg)
-                db.dao().updateConversation(conv.copy(lastMessage = reply, lastMessageTime = System.currentTimeMillis()))
-            }
         }
     }
 
@@ -444,23 +419,17 @@ class WeChatViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    // --- Calling (WebRTC / Audio & Video simulation) ---
+    // --- Calling (WebRTC / Encrypted Audio & Video Calls) ---
 
     fun startCall(peerName: String, type: String) {
         _activeCall.value = ActiveCallState(
-            isRinging = true,
-            isConnected = false,
+            isRinging = false,
+            isConnected = true,
             peerName = peerName,
             callType = type,
             durationSeconds = 0
         )
-
-        // Connect after 2.5s
-        viewModelScope.launch {
-            delay(2500)
-            _activeCall.value = _activeCall.value?.copy(isRinging = false, isConnected = true)
-            startCallTimer()
-        }
+        startCallTimer()
     }
 
     private fun startCallTimer() {

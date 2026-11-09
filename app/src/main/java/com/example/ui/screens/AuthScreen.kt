@@ -44,11 +44,11 @@ fun AuthScreen(
     var fullName by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var emailOrIdentifier by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("+1 ") }
+    var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var dob by remember { mutableStateOf("1998-05-12") }
-    var bio by remember { mutableStateOf("Ready to connect on WeChat.") }
+    var dob by remember { mutableStateOf("") }
+    var bio by remember { mutableStateOf("") }
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
@@ -343,40 +343,6 @@ fun AuthScreen(
                         },
                         testTag = "submit_login_button"
                     )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Quick Demo Login hint
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = WeChatBlueSecondary.copy(alpha = 0.1f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, WeChatBlueSecondary.copy(alpha = 0.3f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Key,
-                                    contentDescription = null,
-                                    tint = WeChatBlueSecondary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Initial Accounts Ready in Database",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    color = WeChatBlueSecondary
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Username: alex_chen or sophia_v\nPassword: WeChat@2026\nOr create your own unique account above!",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
                 }
             }
         }

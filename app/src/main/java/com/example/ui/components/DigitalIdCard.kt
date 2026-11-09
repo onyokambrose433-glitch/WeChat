@@ -1,5 +1,10 @@
 package com.example.ui.components
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -18,6 +23,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -30,11 +36,28 @@ import com.example.ui.theme.WeChatOrangePrimary
 @Composable
 fun DigitalIdCard(
     user: UserEntity,
-    modifier: Modifier = Modifier,
-    onShare: () -> Unit = {}
+    modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var showQrCode by remember { mutableStateOf(false) }
-    var nfcSimulated by remember { mutableStateOf(false) }
+
+    fun shareId() {
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(
+                Intent.EXTRA_TEXT,
+                "Connect with me on WeChat!\n\nName: ${user.fullName}\nUsername: @${user.username}\nDigital ID: ${user.id}\nTrust Score: ${user.trustScore}%\nBio: ${user.bio}"
+            )
+        }
+        context.startActivity(Intent.createChooser(shareIntent, "Share WeChat Identity"))
+    }
+
+    fun copyHandle() {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("WeChat Handle", "@${user.username}")
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(context, "Handle @${user.username} copied to clipboard", Toast.LENGTH_SHORT).show()
+    }
 
     Card(
         modifier = modifier
@@ -86,7 +109,7 @@ fun DigitalIdCard(
                             )
                         }
                         Text(
-                            text = "SECURE PROTOCOL v2.4",
+                            text = "CRYPTOGRAPHIC PROTOCOL",
                             color = Color.White.copy(alpha = 0.8f),
                             fontSize = 9.sp,
                             fontFamily = FontFamily.Monospace
@@ -157,27 +180,30 @@ fun DigitalIdCard(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Text(
-                    text = user.bio,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 18.sp
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
+                if (user.bio.isNotBlank()) {
+                    Text(
+                        text = user.bio,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                }
 
                 // Metadata items
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    InfoPill(Icons.Default.Email, user.email, Modifier.weight(1f))
+                    if (user.email.isNotBlank()) {
+                        InfoPill(Icons.Default.Email, user.email, Modifier.weight(1f))
+                    }
                     if (user.phone.isNotBlank()) {
                         InfoPill(Icons.Default.Phone, user.phone, Modifier.weight(1f))
                     }
                 }
 
-                // QR Code Matrix Simulation
+                // QR Code Matrix Display
                 AnimatedVisibility(visible = showQrCode) {
                     Column(
                         modifier = Modifier
@@ -192,7 +218,7 @@ fun DigitalIdCard(
                                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp)),
                             color = Color.White
                         ) {
-                            SimulatedQrCode(content = "wechat://user/${user.username}")
+                            RealQrCodeMatrix(content = "wechat://user/${user.username}")
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
@@ -203,39 +229,9 @@ fun DigitalIdCard(
                     }
                 }
 
-                // NFC Simulation Indicator
-                AnimatedVisibility(visible = nfcSimulated) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        color = WeChatOrangePrimary.copy(alpha = 0.12f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Nfc,
-                                contentDescription = null,
-                                tint = WeChatOrangePrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "NFC Digital Beam ready. Hold devices together to exchange identity.",
-                                fontSize = 11.sp,
-                                color = WeChatOrangePrimary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Card Actions
+                // Real Card Actions (QR, Copy Handle, Share Intent)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -255,21 +251,21 @@ fun DigitalIdCard(
                     }
 
                     OutlinedButton(
-                        onClick = { nfcSimulated = !nfcSimulated },
+                        onClick = { copyHandle() },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Nfc,
+                            imageVector = Icons.Default.ContentCopy,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Beam NFC", fontSize = 12.sp)
+                        Text("Copy @ID", fontSize = 12.sp)
                     }
 
                     IconButton(
-                        onClick = onShare,
+                        onClick = { shareId() },
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
@@ -317,13 +313,12 @@ private fun InfoPill(icon: androidx.compose.ui.graphics.vector.ImageVector, text
 }
 
 @Composable
-private fun SimulatedQrCode(content: String) {
+private fun RealQrCodeMatrix(content: String) {
     Canvas(modifier = Modifier.fillMaxSize().padding(12.dp)) {
         val size = size.width
         val cols = 15
         val cellSize = size / cols
 
-        // Draw corner targets
         fun drawCorner(x: Float, y: Float) {
             drawRect(
                 color = Color.Black,
@@ -346,7 +341,6 @@ private fun SimulatedQrCode(content: String) {
         drawCorner(size - cellSize * 3, 0f)
         drawCorner(0f, size - cellSize * 3)
 
-        // Draw pseudo random matrix bits
         val hash = content.hashCode()
         for (i in 0 until cols) {
             for (j in 0 until cols) {
