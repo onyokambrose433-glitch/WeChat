@@ -85,6 +85,7 @@ private fun ConversationListScreen(
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var selectedFilter by remember { mutableStateOf("All") }
     var showNewChatDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -92,13 +93,38 @@ private fun ConversationListScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "Messages",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(WeChatOrangePrimary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChatBubble,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "WeChat",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = WeChatOrangePrimary
+                        )
+                    }
                 },
                 actions = {
+                    IconButton(onClick = { showNewChatDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "Camera",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     IconButton(onClick = { showNewChatDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.AddComment,
@@ -111,6 +137,17 @@ private fun ConversationListScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showNewChatDialog = true },
+                containerColor = WeChatOrangePrimary,
+                contentColor = Color.White,
+                shape = CircleShape,
+                modifier = Modifier.testTag("fab_new_chat")
+            ) {
+                Icon(imageVector = Icons.Default.Chat, contentDescription = "New Chat")
+            }
         }
     ) { padding ->
         Column(
@@ -122,7 +159,7 @@ private fun ConversationListScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search messages and contacts...", fontSize = 13.sp) },
+                placeholder = { Text("Search chats...", fontSize = 13.sp) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
@@ -132,13 +169,40 @@ private fun ConversationListScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(12.dp),
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                shape = RoundedCornerShape(20.dp),
                 singleLine = true
             )
 
+            // WhatsApp-style Filter Chips: All, Unread, Groups
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf("All", "Unread", "Groups").forEach { filter ->
+                    val isSelected = selectedFilter == filter
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { selectedFilter = filter },
+                        label = { Text(filter, fontSize = 12.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = WeChatOrangePrimary,
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+            }
+
             val filtered = conversations.filter {
-                searchQuery.isBlank() || it.title.contains(searchQuery, true) || it.lastMessage.contains(searchQuery, true)
+                val matchesSearch = searchQuery.isBlank() || it.title.contains(searchQuery, true) || it.lastMessage.contains(searchQuery, true)
+                val matchesFilter = when (selectedFilter) {
+                    "Unread" -> it.unreadCount > 0
+                    "Groups" -> it.isGroup
+                    else -> true
+                }
+                matchesSearch && matchesFilter
             }
 
             LazyColumn(

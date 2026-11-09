@@ -45,6 +45,7 @@ fun WeChatApp(
     val tasks by viewModel.tasks.collectAsStateWithLifecycle()
     val reminders by viewModel.reminders.collectAsStateWithLifecycle()
     val savedResources by viewModel.savedResources.collectAsStateWithLifecycle()
+    val callLogs by viewModel.callLogs.collectAsStateWithLifecycle()
 
     val activeCall by viewModel.activeCall.collectAsStateWithLifecycle()
 
@@ -80,67 +81,11 @@ fun WeChatApp(
                         tonalElevation = 8.dp,
                         windowInsets = WindowInsets.navigationBars
                     ) {
-                        // 1. Home
-                        NavigationBarItem(
-                            selected = currentDestination == AppNavDestination.HOME,
-                            onClick = { viewModel.navigateTo(AppNavDestination.HOME) },
-                            icon = {
-                                Icon(
-                                    imageVector = if (currentDestination == AppNavDestination.HOME) Icons.Filled.Home else Icons.Outlined.Home,
-                                    contentDescription = "Home"
-                                )
-                            },
-                            label = { Text("Home") },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = WeChatOrangePrimary,
-                                selectedTextColor = WeChatOrangePrimary,
-                                indicatorColor = WeChatOrangePrimary.copy(alpha = 0.15f)
-                            )
-                        )
-
-                        // 2. Discover
-                        NavigationBarItem(
-                            selected = currentDestination == AppNavDestination.DISCOVER,
-                            onClick = { viewModel.navigateTo(AppNavDestination.DISCOVER) },
-                            icon = {
-                                Icon(
-                                    imageVector = if (currentDestination == AppNavDestination.DISCOVER) Icons.Filled.Explore else Icons.Outlined.Explore,
-                                    contentDescription = "Discover"
-                                )
-                            },
-                            label = { Text("Discover") },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = WeChatOrangePrimary,
-                                selectedTextColor = WeChatOrangePrimary,
-                                indicatorColor = WeChatOrangePrimary.copy(alpha = 0.15f)
-                            )
-                        )
-
-                        // 3. Create Studio
-                        NavigationBarItem(
-                            selected = currentDestination == AppNavDestination.CREATE,
-                            onClick = { viewModel.navigateTo(AppNavDestination.CREATE) },
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.Filled.AddCircle,
-                                    contentDescription = "Create",
-                                    tint = WeChatOrangePrimary,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                            },
-                            label = { Text("Create") },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = WeChatOrangePrimary,
-                                selectedTextColor = WeChatOrangePrimary,
-                                indicatorColor = WeChatOrangePrimary.copy(alpha = 0.15f)
-                            )
-                        )
-
-                        // 4. Messages
+                        // 1. Chats (WhatsApp Primary)
                         val totalUnread = conversations.sumOf { it.unreadCount }
                         NavigationBarItem(
-                            selected = currentDestination == AppNavDestination.MESSAGES,
-                            onClick = { viewModel.navigateTo(AppNavDestination.MESSAGES) },
+                            selected = currentDestination == AppNavDestination.CHATS,
+                            onClick = { viewModel.navigateTo(AppNavDestination.CHATS) },
                             icon = {
                                 BadgedBox(badge = {
                                     if (totalUnread > 0) {
@@ -150,12 +95,12 @@ fun WeChatApp(
                                     }
                                 }) {
                                     Icon(
-                                        imageVector = if (currentDestination == AppNavDestination.MESSAGES) Icons.Filled.Chat else Icons.Outlined.Chat,
-                                        contentDescription = "Messages"
+                                        imageVector = if (currentDestination == AppNavDestination.CHATS) Icons.Filled.Chat else Icons.Outlined.Chat,
+                                        contentDescription = "Chats"
                                     )
                                 }
                             },
-                            label = { Text("Messages") },
+                            label = { Text("Chats") },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = WeChatOrangePrimary,
                                 selectedTextColor = WeChatOrangePrimary,
@@ -163,17 +108,71 @@ fun WeChatApp(
                             )
                         )
 
-                        // 5. Profile
+                        // 2. Updates (Status & Stories)
                         NavigationBarItem(
-                            selected = currentDestination == AppNavDestination.PROFILE,
-                            onClick = { viewModel.navigateTo(AppNavDestination.PROFILE) },
+                            selected = currentDestination == AppNavDestination.UPDATES,
+                            onClick = { viewModel.navigateTo(AppNavDestination.UPDATES) },
                             icon = {
                                 Icon(
-                                    imageVector = if (currentDestination == AppNavDestination.PROFILE) Icons.Filled.Person else Icons.Outlined.Person,
-                                    contentDescription = "Profile"
+                                    imageVector = if (currentDestination == AppNavDestination.UPDATES) Icons.Filled.DonutLarge else Icons.Outlined.DonutLarge,
+                                    contentDescription = "Updates"
                                 )
                             },
-                            label = { Text("Profile") },
+                            label = { Text("Updates") },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = WeChatOrangePrimary,
+                                selectedTextColor = WeChatOrangePrimary,
+                                indicatorColor = WeChatOrangePrimary.copy(alpha = 0.15f)
+                            )
+                        )
+
+                        // 3. Communities & Decision Center
+                        NavigationBarItem(
+                            selected = currentDestination == AppNavDestination.COMMUNITIES,
+                            onClick = { viewModel.navigateTo(AppNavDestination.COMMUNITIES) },
+                            icon = {
+                                Icon(
+                                    imageVector = if (currentDestination == AppNavDestination.COMMUNITIES) Icons.Filled.Groups else Icons.Outlined.Groups,
+                                    contentDescription = "Communities"
+                                )
+                            },
+                            label = { Text("Communities") },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = WeChatOrangePrimary,
+                                selectedTextColor = WeChatOrangePrimary,
+                                indicatorColor = WeChatOrangePrimary.copy(alpha = 0.15f)
+                            )
+                        )
+
+                        // 4. Calls
+                        NavigationBarItem(
+                            selected = currentDestination == AppNavDestination.CALLS,
+                            onClick = { viewModel.navigateTo(AppNavDestination.CALLS) },
+                            icon = {
+                                Icon(
+                                    imageVector = if (currentDestination == AppNavDestination.CALLS) Icons.Filled.Call else Icons.Outlined.Call,
+                                    contentDescription = "Calls"
+                                )
+                            },
+                            label = { Text("Calls") },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = WeChatOrangePrimary,
+                                selectedTextColor = WeChatOrangePrimary,
+                                indicatorColor = WeChatOrangePrimary.copy(alpha = 0.15f)
+                            )
+                        )
+
+                        // 5. Dashboard & Digital ID
+                        NavigationBarItem(
+                            selected = currentDestination == AppNavDestination.DASHBOARD,
+                            onClick = { viewModel.navigateTo(AppNavDestination.DASHBOARD) },
+                            icon = {
+                                Icon(
+                                    imageVector = if (currentDestination == AppNavDestination.DASHBOARD) Icons.Filled.Widgets else Icons.Outlined.Widgets,
+                                    contentDescription = "Dashboard"
+                                )
+                            },
+                            label = { Text("Dashboard") },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = WeChatOrangePrimary,
                                 selectedTextColor = WeChatOrangePrimary,
@@ -190,59 +189,7 @@ fun WeChatApp(
                     .padding(padding)
             ) {
                 when (currentDestination) {
-                    AppNavDestination.HOME -> {
-                        HomeScreen(
-                            posts = posts,
-                            stories = stories,
-                            currentUser = currentUser,
-                            onStoryClick = { viewModel.openStory(it) },
-                            onAddStoryClick = { viewModel.navigateTo(AppNavDestination.CREATE) },
-                            onLikePost = { viewModel.toggleLikePost(it) },
-                            onBookmarkPost = { viewModel.toggleBookmarkPost(it) },
-                            onOpenComments = { viewModel.openComments(it) },
-                            onDeletePost = { viewModel.deletePost(it) },
-                            onCreatePostClick = { viewModel.navigateTo(AppNavDestination.CREATE) }
-                        )
-                    }
-                    AppNavDestination.DISCOVER -> {
-                        DiscoverScreen(
-                            communities = communities,
-                            polls = polls,
-                            onToggleJoinCommunity = { viewModel.toggleJoinCommunity(it) },
-                            onVotePoll = { pollId, idx -> viewModel.votePoll(pollId, idx) },
-                            onCreateCommunityClick = { viewModel.navigateTo(AppNavDestination.CREATE) }
-                        )
-                    }
-                    AppNavDestination.CREATE -> {
-                        CreateScreen(
-                            onCreatePost = { content, tags, type, onDone ->
-                                viewModel.createPost(content, tags, type) {
-                                    onDone()
-                                    viewModel.navigateTo(AppNavDestination.HOME)
-                                }
-                            },
-                            onCreateStory = { caption, bgHex, onDone ->
-                                viewModel.createStory(caption, bgHex) {
-                                    onDone()
-                                    viewModel.navigateTo(AppNavDestination.HOME)
-                                }
-                            },
-                            onCreateCommunity = { name, desc, cat, priv, rules, onDone ->
-                                viewModel.createCommunity(name, desc, cat, priv, rules) {
-                                    onDone()
-                                    viewModel.navigateTo(AppNavDestination.DISCOVER)
-                                }
-                            },
-                            onCreatePoll = { commId, q, opts, onDone ->
-                                viewModel.createPoll(commId, q, opts) {
-                                    onDone()
-                                    viewModel.navigateTo(AppNavDestination.DISCOVER)
-                                }
-                            },
-                            onNavigateBack = { viewModel.navigateTo(AppNavDestination.HOME) }
-                        )
-                    }
-                    AppNavDestination.MESSAGES -> {
+                    AppNavDestination.CHATS -> {
                         MessagesScreen(
                             conversations = conversations,
                             selectedConversation = selectedConversation,
@@ -258,7 +205,41 @@ fun WeChatApp(
                             onStartNewChat = { name, isGrp -> viewModel.startNewChat(name, isGrp) }
                         )
                     }
-                    AppNavDestination.PROFILE -> {
+                    AppNavDestination.UPDATES -> {
+                        UpdatesScreen(
+                            stories = stories,
+                            channels = posts,
+                            currentUser = currentUser,
+                            onStoryClick = { viewModel.openStory(it) },
+                            onCreateStory = { caption, bgHex, onDone ->
+                                viewModel.createStory(caption, bgHex, onDone)
+                            }
+                        )
+                    }
+                    AppNavDestination.COMMUNITIES -> {
+                        DiscoverScreen(
+                            communities = communities,
+                            polls = polls,
+                            onToggleJoinCommunity = { viewModel.toggleJoinCommunity(it) },
+                            onVotePoll = { pollId, idx -> viewModel.votePoll(pollId, idx) },
+                            onCreateCommunityClick = {
+                                viewModel.createCommunity(
+                                    "WeChat Community Circle",
+                                    "Collaborative group space with announcements and polls",
+                                    "Technology",
+                                    false,
+                                    "Be respectful and constructive."
+                                ) {}
+                            }
+                        )
+                    }
+                    AppNavDestination.CALLS -> {
+                        CallsScreen(
+                            callLogs = callLogs,
+                            onStartCall = { peer, type -> viewModel.startCall(peer, type) }
+                        )
+                    }
+                    AppNavDestination.DASHBOARD -> {
                         ProfileScreen(
                             user = currentUser,
                             tasks = tasks,

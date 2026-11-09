@@ -12,11 +12,11 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 enum class AppNavDestination {
-    HOME,
-    DISCOVER,
-    CREATE,
-    MESSAGES,
-    PROFILE
+    CHATS,
+    UPDATES,
+    COMMUNITIES,
+    CALLS,
+    DASHBOARD
 }
 
 data class ActiveCallState(
@@ -36,7 +36,7 @@ class WeChatViewModel(application: Application) : AndroidViewModel(application) 
     val repository = WeChatRepository(db.dao())
 
     // Navigation & Screen selection
-    private val _currentDestination = MutableStateFlow(AppNavDestination.HOME)
+    private val _currentDestination = MutableStateFlow(AppNavDestination.CHATS)
     val currentDestination: StateFlow<AppNavDestination> = _currentDestination.asStateFlow()
 
     // Sub-screens / Overlays
@@ -334,7 +334,7 @@ class WeChatViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val conv = repository.createConversation(peerName, isGroup)
             _selectedConversation.value = conv
-            _currentDestination.value = AppNavDestination.MESSAGES
+            _currentDestination.value = AppNavDestination.CHATS
         }
     }
 

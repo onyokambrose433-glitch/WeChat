@@ -519,10 +519,10 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> {
   int _currentIndex = 0;
 
   final List<Widget> _sections = const [
+    MessagesSection(),
     HomeSection(),
     DiscoverSection(),
-    CreateSection(),
-    MessagesSection(),
+    CallsSection(),
     ProfileSection(),
   ];
 
@@ -542,29 +542,6 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> {
         },
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore_rounded),
-            label: 'Discover',
-          ),
-          NavigationDestination(
-            icon: Icon(
-              Icons.add_circle,
-              color: WeChatColors.primaryOrange,
-              size: 28,
-            ),
-            selectedIcon: Icon(
-              Icons.add_circle,
-              color: WeChatColors.primaryOrange,
-              size: 30,
-            ),
-            label: 'Create',
-          ),
-          NavigationDestination(
             icon: Badge(
               label: Text('3'),
               backgroundColor: WeChatColors.primaryOrange,
@@ -575,14 +552,104 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> {
               backgroundColor: WeChatColors.primaryOrange,
               child: Icon(Icons.chat_bubble_rounded),
             ),
-            label: 'Messages',
+            label: 'Chats',
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Profile',
+            icon: Icon(Icons.donut_large_rounded),
+            selectedIcon: Icon(Icons.donut_large_rounded),
+            label: 'Updates',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.groups_outlined),
+            selectedIcon: Icon(Icons.groups_rounded),
+            label: 'Communities',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.call_outlined),
+            selectedIcon: Icon(Icons.call_rounded),
+            label: 'Calls',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.dashboard_customize_outlined),
+            selectedIcon: Icon(Icons.dashboard_customize_rounded),
+            label: 'Dashboard',
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// ============================================================================
+/// 3.1 CALLS SECTION (WHATSAPP CALL LOGS & ENCRYPTED CALLING)
+/// ============================================================================
+
+class CallsSection extends StatelessWidget {
+  const CallsSection({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Calls', style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_call, color: WeChatColors.primaryOrange),
+            onPressed: () {},
+          ),
+        ],
+      ),
+      body: ListView(
+        children: [
+          ListTile(
+            leading: CircleAvatar(
+              backgroundColor: WeChatColors.primaryOrange.withOpacity(0.15),
+              child: const Icon(Icons.link_rounded, color: WeChatColors.primaryOrange),
+            ),
+            title: const Text('Create a call link', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            subtitle: const Text('Share an encrypted audio or video link for your WeChat call', style: TextStyle(fontSize: 12)),
+            onTap: () {},
+          ),
+          const Divider(),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text('Recent', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 13)),
+          ),
+          _buildCallItem('Alex Chen', 'Today, 14:20', isVideo: true, isIncoming: true),
+          const Divider(height: 1, indent: 72),
+          _buildCallItem('Sophia Vance', 'Yesterday, 18:05', isVideo: false, isIncoming: false),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: WeChatColors.primaryOrange,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add_call),
+        onPressed: () {},
+      ),
+    );
+  }
+
+  Widget _buildCallItem(String name, String time, {required bool isVideo, required bool isIncoming}) {
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: WeChatColors.secondaryBlue.withOpacity(0.15),
+        child: Text(name.substring(0, 1), style: const TextStyle(color: WeChatColors.secondaryBlue, fontWeight: FontWeight.bold)),
+      ),
+      title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      subtitle: Row(
+        children: [
+          Icon(
+            isIncoming ? Icons.call_received_rounded : Icons.call_made_rounded,
+            size: 14,
+            color: const Color(0xFF00C853),
+          ),
+          const SizedBox(width: 4),
+          Text(time, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        ],
+      ),
+      trailing: Icon(
+        isVideo ? Icons.videocam_rounded : Icons.call_rounded,
+        color: WeChatColors.primaryOrange,
       ),
     );
   }
