@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -157,8 +161,15 @@ class WeChatTheme {
 /// 2. MAIN APPLICATION WIDGET
 /// ============================================================================
 
-class WeChatApp extends StatelessWidget {
+class WeChatApp extends StatefulWidget {
   const WeChatApp({super.key});
+
+  @override
+  State<WeChatApp> createState() => _WeChatAppState();
+}
+
+class _WeChatAppState extends State<WeChatApp> {
+  bool _isAuthenticated = false;
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +179,324 @@ class WeChatApp extends StatelessWidget {
       theme: WeChatTheme.lightTheme,
       darkTheme: WeChatTheme.darkTheme,
       themeMode: ThemeMode.system,
-      home: const MainNavigationScaffold(),
+      home: _isAuthenticated
+          ? MainNavigationScaffold(onLogout: () => setState(() => _isAuthenticated = false))
+          : FlutterAuthScreen(onAuthenticated: () => setState(() => _isAuthenticated = true)),
+    );
+  }
+}
+
+/// ============================================================================
+/// 2.1 AUTHENTICATION & ACCOUNT CREATION SCREEN
+/// Features dedicated "Complete Account Creation" button
+/// ============================================================================
+
+class FlutterAuthScreen extends StatefulWidget {
+  final VoidCallback onAuthenticated;
+
+  const FlutterAuthScreen({super.key, required this.onAuthenticated});
+
+  @override
+  State<FlutterAuthScreen> createState() => _FlutterAuthScreenState();
+}
+
+class _FlutterAuthScreenState extends State<FlutterAuthScreen> {
+  bool _isRegisterMode = true;
+
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
+  final TextEditingController _bioController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
+  String? _errorMessage;
+  bool _isLoading = false;
+
+  void _submitRegistration() {
+    final fullName = _fullNameController.text.trim();
+    final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (fullName.isEmpty) {
+      setState(() => _errorMessage = 'Please enter your full name.');
+      return;
+    }
+    if (username.isEmpty || username.length < 3) {
+      setState(() => _errorMessage = 'Username must be at least 3 characters.');
+      return;
+    }
+    if (email.isEmpty || !email.contains('@')) {
+      setState(() => _errorMessage = 'Please enter a valid email address.');
+      return;
+    }
+    if (password.length < 6) {
+      setState(() => _errorMessage = 'Password must be at least 6 characters.');
+      return;
+    }
+    if (password != confirmPassword) {
+      setState(() => _errorMessage = 'Passwords do not match.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    // Simulate account registration & JWT session saving
+    TokenManager().saveTokens(
+      access: 'access_token_demo_${DateTime.now().millisecondsSinceEpoch}',
+      refresh: 'refresh_token_demo_${DateTime.now().millisecondsSinceEpoch}',
+    );
+
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        widget.onAuthenticated();
+      }
+    });
+  }
+
+  void _submitLogin() {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = 'Please enter both email/username and password.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        widget.onAuthenticated();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                children: [
+                  // WeChat Brand Header
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [WeChatColors.primaryOrange, WeChatColors.secondaryBlue],
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 38),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Center(
+                    child: Text(
+                      'WeChat',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Center(
+                    child: Text(
+                      _isRegisterMode
+                          ? 'Fill in your details and tap Complete Account Creation.'
+                          : 'Sign in to access your network and conversations.',
+                      style: const TextStyle(fontSize: 13, color: Colors.grey),
+                      textAlign: TextAlign.Center,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Segmented Switcher (Sign In vs Create Account)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() {
+                              _isRegisterMode = false;
+                              _errorMessage = null;
+                            }),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: !_isRegisterMode ? WeChatColors.primaryOrange : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Sign In',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: !_isRegisterMode ? Colors.white : Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() {
+                              _isRegisterMode = true;
+                              _errorMessage = null;
+                            }),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: _isRegisterMode ? WeChatColors.primaryOrange : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Create Account',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: _isRegisterMode ? Colors.white : Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  if (_errorMessage != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.red.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: const TextStyle(color: Colors.red, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+
+                  if (_isRegisterMode) ...[
+                    _buildTextField(_fullNameController, 'Full Name *', Icons.badge_outlined),
+                    const SizedBox(height: 12),
+                    _buildTextField(_usernameController, 'Unique Username (@handle) *', Icons.alternate_email_rounded),
+                    const SizedBox(height: 12),
+                    _buildTextField(_emailController, 'Email Address *', Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+                    const SizedBox(height: 12),
+                    _buildTextField(_phoneController, 'Phone Number with Country Code', Icons.phone_outlined, keyboardType: TextInputType.phone),
+                    const SizedBox(height: 12),
+                    _buildTextField(_dobController, 'Date of Birth (YYYY-MM-DD)', Icons.calendar_today_outlined),
+                    const SizedBox(height: 12),
+                    _buildTextField(_bioController, 'Personal Biography / About', Icons.info_outline_rounded),
+                    const SizedBox(height: 12),
+                    _buildTextField(_passwordController, 'Password (min 6 chars) *', Icons.lock_outline_rounded, isPassword: true),
+                    const SizedBox(height: 12),
+                    _buildTextField(_confirmPasswordController, 'Confirm Password *', Icons.lock_reset_rounded, isPassword: true),
+                    const SizedBox(height: 24),
+                  ] else ...[
+                    _buildTextField(_emailController, 'Username or Email', Icons.person_outline_rounded),
+                    const SizedBox(height: 14),
+                    _buildTextField(_passwordController, 'Password', Icons.lock_outline_rounded, isPassword: true),
+                    const SizedBox(height: 24),
+                  ],
+                ],
+              ),
+            ),
+
+            // Persistent Bottom Bar with Complete Account Creation Button
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, -3),
+                  ),
+                ],
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: WeChatColors.primaryOrange,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  icon: Icon(_isRegisterMode ? Icons.check_circle_rounded : Icons.login_rounded),
+                  label: Text(
+                    _isLoading
+                        ? 'Processing...'
+                        : (_isRegisterMode ? 'Complete Account Creation' : 'Sign In to WeChat'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                  onPressed: _isLoading
+                      ? null
+                      : (_isRegisterMode ? _submitRegistration : _submitLogin),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    bool isPassword = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: isPassword,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: WeChatColors.primaryOrange, size: 20),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      ),
     );
   }
 }
@@ -179,7 +507,9 @@ class WeChatApp extends StatelessWidget {
 /// ============================================================================
 
 class MainNavigationScaffold extends StatefulWidget {
-  const MainNavigationScaffold({super.key});
+  final VoidCallback? onLogout;
+
+  const MainNavigationScaffold({super.key, this.onLogout});
 
   @override
   State<MainNavigationScaffold> createState() => _MainNavigationScaffoldState();
@@ -892,3 +1222,509 @@ class _StatColumn extends StatelessWidget {
     );
   }
 }
+
+/// ============================================================================
+/// 9. WECHAT NETWORK SERVICE & DJANGO API CLIENT
+/// Configurable Base URL, Token Interceptors, 401 Auto-Refresh, Multipart Uploads
+/// ============================================================================
+
+/// Configuration constants for Django backend on Render
+class NetworkConfig {
+  static String baseUrl = 'https://wechat-backend-api.onrender.com/api/v1';
+  static String wsBaseUrl = 'wss://wechat-backend-api.onrender.com/ws';
+
+  static const Duration connectTimeout = Duration(seconds: 15);
+  static const Duration receiveTimeout = Duration(seconds: 20);
+
+  static void setBaseUrl(String url) {
+    baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+  }
+}
+
+/// Token storage and lifecycle manager
+class TokenManager {
+  static final TokenManager _instance = TokenManager._internal();
+  factory TokenManager() => _instance;
+  TokenManager._internal();
+
+  String? _accessToken;
+  String? _refreshToken;
+  DateTime? _tokenExpiry;
+
+  String? get accessToken => _accessToken;
+  String? get refreshToken => _refreshToken;
+  bool get hasValidToken => _accessToken != null && !isExpired;
+
+  bool get isExpired {
+    if (_tokenExpiry == null) return false;
+    return DateTime.now().isAfter(_tokenExpiry!);
+  }
+
+  void saveTokens({
+    required String access,
+    required String refresh,
+    int? expiresInSeconds,
+  }) {
+    _accessToken = access;
+    _refreshToken = refresh;
+    if (expiresInSeconds != null) {
+      _tokenExpiry = DateTime.now().add(Duration(seconds: expiresInSeconds));
+    }
+  }
+
+  void updateAccessToken(String newAccess, {int? expiresInSeconds}) {
+    _accessToken = newAccess;
+    if (expiresInSeconds != null) {
+      _tokenExpiry = DateTime.now().add(Duration(seconds: expiresInSeconds));
+    }
+  }
+
+  void clearTokens() {
+    _accessToken = null;
+    _refreshToken = null;
+    _tokenExpiry = null;
+  }
+}
+
+/// Strongly-typed network response model
+class ApiResponse<T> {
+  final int statusCode;
+  final bool isSuccess;
+  final T? data;
+  final String? errorMessage;
+  final Map<String, dynamic>? fieldErrors;
+
+  ApiResponse({
+    required this.statusCode,
+    required this.isSuccess,
+    this.data,
+    this.errorMessage,
+    this.fieldErrors,
+  });
+
+  factory ApiResponse.success(int statusCode, T data) {
+    return ApiResponse(
+      statusCode: statusCode,
+      isSuccess: true,
+      data: data,
+    );
+  }
+
+  factory ApiResponse.error(int statusCode, String message, {Map<String, dynamic>? fieldErrors}) {
+    return ApiResponse(
+      statusCode: statusCode,
+      isSuccess: false,
+      errorMessage: message,
+      fieldErrors: fieldErrors,
+    );
+  }
+}
+
+/// Interceptor contract for request preprocessing and response handling
+abstract class NetworkInterceptor {
+  Future<Map<String, String>> onRequest(String url, String method, Map<String, String> headers);
+  Future<void> onResponse(int statusCode, dynamic body);
+  Future<bool> onError(int statusCode, dynamic body);
+}
+
+/// Default WeChat Token & Auth Interceptor
+class WeChatAuthInterceptor implements NetworkInterceptor {
+  final TokenManager tokenManager = TokenManager();
+  bool _isRefreshing = false;
+
+  @override
+  Future<Map<String, String>> onRequest(
+    String url,
+    String method,
+    Map<String, String> headers,
+  ) async {
+    final updatedHeaders = Map<String, String>.from(headers);
+    updatedHeaders['Content-Type'] = 'application/json';
+    updatedHeaders['Accept'] = 'application/json';
+    updatedHeaders['X-WeChat-Platform'] = 'Android-Flutter';
+
+    // Inject Bearer token if available
+    final token = tokenManager.accessToken;
+    if (token != null && token.isNotEmpty && !url.contains('/auth/token/refresh/')) {
+      updatedHeaders['Authorization'] = 'Bearer $token';
+    }
+
+    if (kDebugMode) {
+      debugPrint('[WeChat Network] --> $method $url');
+    }
+    return updatedHeaders;
+  }
+
+  @override
+  Future<void> onResponse(int statusCode, dynamic body) async {
+    if (kDebugMode) {
+      debugPrint('[WeChat Network] <-- Response Status: $statusCode');
+    }
+  }
+
+  @override
+  Future<bool> onError(int statusCode, dynamic body) async {
+    // Detect 401 Unauthorized for token refresh
+    if (statusCode == 401 && tokenManager.refreshToken != null && !_isRefreshing) {
+      _isRefreshing = true;
+      try {
+        final refreshSuccess = await WeChatNetworkService.instance.refreshToken();
+        return refreshSuccess;
+      } finally {
+        _isRefreshing = false;
+      }
+    }
+    return false;
+  }
+}
+
+/// Primary Network Service communicating with Django REST Framework backend
+class WeChatNetworkService {
+  static final WeChatNetworkService _instance = WeChatNetworkService._internal();
+  static WeChatNetworkService get instance => _instance;
+
+  final HttpClient _httpClient = HttpClient();
+  final TokenManager _tokenManager = TokenManager();
+  final List<NetworkInterceptor> _interceptors = [WeChatAuthInterceptor()];
+
+  WeChatNetworkService._internal() {
+    _httpClient.connectionTimeout = NetworkConfig.connectTimeout;
+  }
+
+  void addInterceptor(NetworkInterceptor interceptor) {
+    _interceptors.add(interceptor);
+  }
+
+  /// GET Request
+  Future<ApiResponse<dynamic>> get(
+    String endpoint, {
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+  }) async {
+    return _sendRequest(
+      method: 'GET',
+      endpoint: endpoint,
+      queryParameters: queryParameters,
+      customHeaders: headers,
+    );
+  }
+
+  /// POST Request
+  Future<ApiResponse<dynamic>> post(
+    String endpoint, {
+    dynamic body,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+  }) async {
+    return _sendRequest(
+      method: 'POST',
+      endpoint: endpoint,
+      body: body,
+      queryParameters: queryParameters,
+      customHeaders: headers,
+    );
+  }
+
+  /// PUT Request
+  Future<ApiResponse<dynamic>> put(
+    String endpoint, {
+    dynamic body,
+    Map<String, String>? headers,
+  }) async {
+    return _sendRequest(
+      method: 'PUT',
+      endpoint: endpoint,
+      body: body,
+      customHeaders: headers,
+    );
+  }
+
+  /// PATCH Request
+  Future<ApiResponse<dynamic>> patch(
+    String endpoint, {
+    dynamic body,
+    Map<String, String>? headers,
+  }) async {
+    return _sendRequest(
+      method: 'PATCH',
+      endpoint: endpoint,
+      body: body,
+      customHeaders: headers,
+    );
+  }
+
+  /// DELETE Request
+  Future<ApiResponse<dynamic>> delete(
+    String endpoint, {
+    Map<String, String>? headers,
+  }) async {
+    return _sendRequest(
+      method: 'DELETE',
+      endpoint: endpoint,
+      customHeaders: headers,
+    );
+  }
+
+  /// Core request executor with pipeline interceptors and automatic 401 refresh retry
+  Future<ApiResponse<dynamic>> _sendRequest({
+    required String method,
+    required String endpoint,
+    dynamic body,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? customHeaders,
+    bool isRetry = false,
+  }) async {
+    final uri = _buildUri(endpoint, queryParameters);
+    var headers = customHeaders ?? <String, String>{};
+
+    // Run request interceptors
+    for (final interceptor in _interceptors) {
+      headers = await interceptor.onRequest(uri.toString(), method, headers);
+    }
+
+    try {
+      final request = await _httpClient.openUrl(method, uri);
+
+      // Attach headers
+      headers.forEach((key, value) {
+        request.headers.set(key, value);
+      });
+
+      // Write body payload
+      if (body != null) {
+        final jsonString = jsonEncode(body);
+        request.headers.contentType = ContentType.json;
+        request.write(jsonString);
+      }
+
+      final response = await request.close().timeout(NetworkConfig.receiveTimeout);
+      final responseBody = await response.transform(utf8.decoder).join();
+      final statusCode = response.statusCode;
+
+      dynamic parsedData;
+      if (responseBody.isNotEmpty) {
+        try {
+          parsedData = jsonDecode(responseBody);
+        } catch (_) {
+          parsedData = responseBody;
+        }
+      }
+
+      // Run response interceptors
+      for (final interceptor in _interceptors) {
+        await interceptor.onResponse(statusCode, parsedData);
+      }
+
+      // Check for token refresh on 401
+      if (statusCode == 401 && !isRetry) {
+        bool canRetry = false;
+        for (final interceptor in _interceptors) {
+          canRetry = await interceptor.onError(statusCode, parsedData) || canRetry;
+        }
+        if (canRetry) {
+          // Replay original request with refreshed token
+          return _sendRequest(
+            method: method,
+            endpoint: endpoint,
+            body: body,
+            queryParameters: queryParameters,
+            customHeaders: customHeaders,
+            isRetry: true,
+          );
+        }
+      }
+
+      if (statusCode >= 200 && statusCode < 300) {
+        return ApiResponse.success(statusCode, parsedData);
+      } else {
+        return _handleErrorResponse(statusCode, parsedData);
+      }
+    } on SocketException catch (e) {
+      return ApiResponse.error(0, 'Network connection error. Check server status at ${NetworkConfig.baseUrl}: ${e.message}');
+    } on TimeoutException {
+      return ApiResponse.error(408, 'Request timed out while connecting to Django backend.');
+    } catch (e) {
+      return ApiResponse.error(500, 'Unexpected network error: $e');
+    }
+  }
+
+  /// Multipart File Upload (Profile pictures, videos, documents to Cloudinary via Django)
+  Future<ApiResponse<dynamic>> uploadMultipart(
+    String endpoint, {
+    required String fieldName,
+    required List<int> fileBytes,
+    required String fileName,
+    Map<String, String>? additionalFields,
+  }) async {
+    final uri = _buildUri(endpoint, null);
+    final boundary = '----WeChatBoundary${DateTime.now().millisecondsSinceEpoch}';
+
+    try {
+      final request = await _httpClient.postUrl(uri);
+      request.headers.set(HttpHeaders.contentTypeHeader, 'multipart/form-data; boundary=$boundary');
+
+      final token = _tokenManager.accessToken;
+      if (token != null) {
+        request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+      }
+
+      final boundaryBytes = utf8.encode('--$boundary\r\n');
+      final endBoundaryBytes = utf8.encode('--$boundary--\r\n');
+
+      // Write additional form fields
+      if (additionalFields != null) {
+        for (final entry in additionalFields.entries) {
+          request.add(boundaryBytes);
+          request.add(utf8.encode(
+            'Content-Disposition: form-data; name="${entry.key}"\r\n\r\n${entry.value}\r\n',
+          ));
+        }
+      }
+
+      // Write file payload
+      request.add(boundaryBytes);
+      request.add(utf8.encode(
+        'Content-Disposition: form-data; name="$fieldName"; filename="$fileName"\r\n'
+        'Content-Type: application/octet-stream\r\n\r\n',
+      ));
+      request.add(fileBytes);
+      request.add(utf8.encode('\r\n'));
+      request.add(endBoundaryBytes);
+
+      final response = await request.close().timeout(NetworkConfig.receiveTimeout);
+      final responseBody = await response.transform(utf8.decoder).join();
+      final statusCode = response.statusCode;
+
+      dynamic parsedData;
+      if (responseBody.isNotEmpty) {
+        try {
+          parsedData = jsonDecode(responseBody);
+        } catch (_) {
+          parsedData = responseBody;
+        }
+      }
+
+      if (statusCode >= 200 && statusCode < 300) {
+        return ApiResponse.success(statusCode, parsedData);
+      } else {
+        return _handleErrorResponse(statusCode, parsedData);
+      }
+    } catch (e) {
+      return ApiResponse.error(500, 'Multipart upload failed: $e');
+    }
+  }
+
+  /// Automatic token refresh handler calling Django JWT endpoint
+  Future<bool> refreshToken() async {
+    final refresh = _tokenManager.refreshToken;
+    if (refresh == null) return false;
+
+    try {
+      final uri = _buildUri(ApiEndpoints.tokenRefresh, null);
+      final request = await _httpClient.postUrl(uri);
+      request.headers.contentType = ContentType.json;
+      request.write(jsonEncode({'refresh': refresh}));
+
+      final response = await request.close().timeout(NetworkConfig.receiveTimeout);
+      if (response.statusCode == 200) {
+        final body = await response.transform(utf8.decoder).join();
+        final data = jsonDecode(body) as Map<String, dynamic>;
+        final newAccess = data['access'] as String;
+        _tokenManager.updateAccessToken(newAccess);
+        if (kDebugMode) {
+          debugPrint('[WeChat Network] Access token successfully refreshed.');
+        }
+        return true;
+      } else {
+        // Refresh token invalid or expired -> force logout
+        _tokenManager.clearTokens();
+        return false;
+      }
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Parses Django REST Framework error formats
+  ApiResponse<dynamic> _handleErrorResponse(int statusCode, dynamic data) {
+    String errorMessage = 'Request failed with status $statusCode';
+    Map<String, dynamic>? fieldErrors;
+
+    if (data is Map<String, dynamic>) {
+      if (data.containsKey('detail')) {
+        errorMessage = data['detail'].toString();
+      } else if (data.containsKey('error')) {
+        errorMessage = data['error'].toString();
+      } else if (data.containsKey('message')) {
+        errorMessage = data['message'].toString();
+      } else {
+        // DRF field validation errors (e.g. {"username": ["Already taken"]})
+        fieldErrors = data;
+        final firstKey = data.keys.firstOrNull;
+        if (firstKey != null) {
+          final firstVal = data[firstKey];
+          if (firstVal is List && firstVal.isNotEmpty) {
+            errorMessage = '$firstKey: ${firstVal.first}';
+          } else {
+            errorMessage = '$firstKey: $firstVal';
+          }
+        }
+      }
+    }
+
+    return ApiResponse.error(statusCode, errorMessage, fieldErrors: fieldErrors);
+  }
+
+  Uri _buildUri(String endpoint, Map<String, dynamic>? queryParameters) {
+    final cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/$endpoint';
+    final fullUrl = '${NetworkConfig.baseUrl}$cleanEndpoint';
+    final baseUri = Uri.parse(fullUrl);
+
+    if (queryParameters != null && queryParameters.isNotEmpty) {
+      final queryMap = queryParameters.map((key, value) => MapEntry(key, value.toString()));
+      return baseUri.replace(queryParameters: queryMap);
+    }
+    return baseUri;
+  }
+}
+
+/// Django REST Framework API Endpoint Registry
+class ApiEndpoints {
+  // Authentication & Sessions
+  static const String register = '/auth/register/';
+  static const String login = '/auth/login/';
+  static const String tokenRefresh = '/auth/token/refresh/';
+  static const String logout = '/auth/logout/';
+  static const String profile = '/auth/profile/';
+  static const String changePassword = '/auth/password/change/';
+  static const String sessions = '/auth/sessions/';
+  static const String deleteAccount = '/auth/account/delete/';
+
+  // Social Timeline & Feed
+  static const String posts = '/posts/';
+  static String postDetail(String id) => '/posts/$id/';
+  static String postLike(String id) => '/posts/$id/like/';
+  static String postBookmark(String id) => '/posts/$id/bookmark/';
+  static String postComments(String id) => '/posts/$id/comments/';
+  static const String stories = '/stories/';
+
+  // Communication & Chats
+  static const String conversations = '/chat/conversations/';
+  static String conversationMessages(String id) => '/chat/conversations/$id/messages/';
+  static String messageReact(String id) => '/chat/messages/$id/react/';
+  static const String callLogs = '/chat/calls/';
+
+  // Communities & Decisions
+  static const String communities = '/communities/';
+  static String communityDetail(String id) => '/communities/$id/';
+  static String communityJoin(String id) => '/communities/$id/join/';
+  static const String polls = '/communities/polls/';
+  static String pollVote(String id) => '/communities/polls/$id/vote/';
+
+  // Life Dashboard
+  static const String tasks = '/dashboard/tasks/';
+  static String taskDetail(String id) => '/dashboard/tasks/$id/';
+  static const String reminders = '/dashboard/reminders/';
+  static const String library = '/dashboard/library/';
+}
+

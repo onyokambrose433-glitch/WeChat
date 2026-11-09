@@ -1,12 +1,10 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -18,15 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.R
 import com.example.ui.components.WeChatButton
 import com.example.ui.components.WeChatTextField
 import com.example.ui.theme.WeChatBlueSecondary
@@ -53,27 +48,127 @@ fun AuthScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
-    Box(
+    fun submitRegistration() {
+        if (fullName.isBlank()) {
+            errorMessage = "Please enter your full name."
+            return
+        }
+        if (username.isBlank()) {
+            errorMessage = "Please enter a unique username."
+            return
+        }
+        if (username.trim().length < 3) {
+            errorMessage = "Username must be at least 3 characters."
+            return
+        }
+        if (emailOrIdentifier.isBlank() || !emailOrIdentifier.contains("@")) {
+            errorMessage = "Please enter a valid email address."
+            return
+        }
+        if (password.length < 6) {
+            errorMessage = "Password must be at least 6 characters."
+            return
+        }
+        if (password != confirmPassword) {
+            errorMessage = "Passwords do not match."
+            return
+        }
+
+        isLoading = true
+        errorMessage = null
+        onRegister(
+            fullName.trim(),
+            username.trim().removePrefix("@"),
+            emailOrIdentifier.trim(),
+            phone.trim(),
+            password,
+            dob.trim(),
+            bio.trim(),
+            { isLoading = false },
+            { err ->
+                isLoading = false
+                errorMessage = err
+            }
+        )
+    }
+
+    fun submitLogin() {
+        if (emailOrIdentifier.isBlank()) {
+            errorMessage = "Please enter your username or email."
+            return
+        }
+        if (password.isBlank()) {
+            errorMessage = "Please enter your password."
+            return
+        }
+
+        isLoading = true
+        errorMessage = null
+        onLogin(
+            emailOrIdentifier.trim(),
+            password,
+            { isLoading = false },
+            { err ->
+                isLoading = false
+                errorMessage = err
+            }
+        )
+    }
+
+    Scaffold(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .testTag("auth_screen")
-    ) {
+            .testTag("auth_screen"),
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            // Fixed bottom bar guaranteeing the completion button is ALWAYS visible and accessible
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp,
+                shadowElevation = 8.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                        .navigationBarsPadding()
+                ) {
+                    if (isRegisterMode) {
+                        WeChatButton(
+                            text = if (isLoading) "Creating Account..." else "Complete Account Creation",
+                            leadingIcon = Icons.Default.CheckCircle,
+                            enabled = !isLoading,
+                            onClick = { submitRegistration() },
+                            testTag = "complete_account_creation_button"
+                        )
+                    } else {
+                        WeChatButton(
+                            text = if (isLoading) "Signing In..." else "Sign In to WeChat",
+                            leadingIcon = Icons.Default.Login,
+                            enabled = !isLoading,
+                            onClick = { submitLogin() },
+                            testTag = "submit_login_button"
+                        )
+                    }
+                }
+            }
+        }
+    ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp),
+                .padding(padding)
+                .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            contentPadding = PaddingValues(vertical = 24.dp)
+            contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
         ) {
             item {
                 // WeChat Brand Emblem
                 Box(
                     modifier = Modifier
-                        .size(76.dp)
-                        .clip(RoundedCornerShape(20.dp))
+                        .size(70.dp)
+                        .clip(RoundedCornerShape(18.dp))
                         .background(
                             Brush.linearGradient(
                                 listOf(WeChatOrangePrimary, WeChatBlueSecondary)
@@ -85,11 +180,11 @@ fun AuthScreen(
                         imageVector = Icons.Default.ChatBubble,
                         contentDescription = "WeChat Logo",
                         tint = Color.White,
-                        modifier = Modifier.size(42.dp)
+                        modifier = Modifier.size(38.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
                     text = "WeChat",
@@ -99,16 +194,16 @@ fun AuthScreen(
                 )
 
                 Text(
-                    text = if (isRegisterMode) "Create your verified digital social profile" else "Next-Generation Social Communication Platform",
+                    text = if (isRegisterMode) "Enter your profile details below, then tap 'Complete Account Creation'." else "Next-Generation Social Communication Platform",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Mode Selector Tabs (Sign In / Register)
+                // Mode Selector Tabs (Sign In / Create Account)
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
@@ -155,7 +250,7 @@ fun AuthScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Error Message banner
                 AnimatedVisibility(visible = errorMessage != null) {
@@ -188,12 +283,12 @@ fun AuthScreen(
             }
 
             if (isRegisterMode) {
-                // Registration Form
+                // Registration Form fields
                 item {
                     WeChatTextField(
                         value = fullName,
                         onValueChange = { fullName = it },
-                        label = "Full Name",
+                        label = "Full Name *",
                         leadingIcon = Icons.Default.Badge,
                         testTag = "reg_fullname_input"
                     )
@@ -202,7 +297,7 @@ fun AuthScreen(
                     WeChatTextField(
                         value = username,
                         onValueChange = { username = it },
-                        label = "Unique Username (@handle)",
+                        label = "Unique Username (@handle) *",
                         leadingIcon = Icons.Default.AlternateEmail,
                         testTag = "reg_username_input"
                     )
@@ -211,7 +306,7 @@ fun AuthScreen(
                     WeChatTextField(
                         value = emailOrIdentifier,
                         onValueChange = { emailOrIdentifier = it },
-                        label = "Email Address",
+                        label = "Email Address *",
                         leadingIcon = Icons.Default.Email,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         testTag = "reg_email_input"
@@ -221,7 +316,7 @@ fun AuthScreen(
                     WeChatTextField(
                         value = phone,
                         onValueChange = { phone = it },
-                        label = "Phone Number with Country Code",
+                        label = "Phone Number (with Country Code)",
                         leadingIcon = Icons.Default.Phone,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         testTag = "reg_phone_input"
@@ -240,7 +335,7 @@ fun AuthScreen(
                     WeChatTextField(
                         value = bio,
                         onValueChange = { bio = it },
-                        label = "Personal Biography",
+                        label = "Biography / About You",
                         leadingIcon = Icons.Default.Info,
                         singleLine = false,
                         testTag = "reg_bio_input"
@@ -250,7 +345,7 @@ fun AuthScreen(
                     WeChatTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = "Password (min 6 chars)",
+                        label = "Password (min 6 chars) *",
                         leadingIcon = Icons.Default.Lock,
                         isPassword = true,
                         testTag = "reg_pass_input"
@@ -260,47 +355,26 @@ fun AuthScreen(
                     WeChatTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
-                        label = "Confirm Password",
+                        label = "Confirm Password *",
                         leadingIcon = Icons.Default.LockReset,
                         isPassword = true,
                         testTag = "reg_confpass_input"
                     )
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
+                    // Also provide in-form complete button for direct inline submission
                     WeChatButton(
-                        text = if (isLoading) "Creating Cryptographic Profile..." else "Register & Connect",
+                        text = if (isLoading) "Creating Account..." else "Complete Account Creation",
+                        leadingIcon = Icons.Default.CheckCircle,
                         enabled = !isLoading,
-                        onClick = {
-                            if (password != confirmPassword) {
-                                errorMessage = "Passwords do not match."
-                                return@WeChatButton
-                            }
-                            if (fullName.isBlank() || username.isBlank() || emailOrIdentifier.isBlank()) {
-                                errorMessage = "Please fill in all required fields."
-                                return@WeChatButton
-                            }
-                            isLoading = true
-                            errorMessage = null
-                            onRegister(
-                                fullName,
-                                username,
-                                emailOrIdentifier,
-                                phone,
-                                password,
-                                dob,
-                                bio,
-                                { isLoading = false },
-                                { err ->
-                                    isLoading = false
-                                    errorMessage = err
-                                }
-                            )
-                        },
-                        testTag = "submit_registration_button"
+                        onClick = { submitRegistration() },
+                        testTag = "inline_complete_account_creation_button"
                     )
+
+                    Spacer(modifier = Modifier.height(30.dp))
                 }
             } else {
-                // Login Form
+                // Login Form fields
                 item {
                     WeChatTextField(
                         value = emailOrIdentifier,
@@ -319,30 +393,17 @@ fun AuthScreen(
                         isPassword = true,
                         testTag = "login_pass_input"
                     )
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     WeChatButton(
-                        text = if (isLoading) "Verifying Credentials..." else "Sign In to WeChat",
+                        text = if (isLoading) "Signing In..." else "Sign In to WeChat",
+                        leadingIcon = Icons.Default.Login,
                         enabled = !isLoading,
-                        onClick = {
-                            if (emailOrIdentifier.isBlank() || password.isBlank()) {
-                                errorMessage = "Please enter your username/email and password."
-                                return@WeChatButton
-                            }
-                            isLoading = true
-                            errorMessage = null
-                            onLogin(
-                                emailOrIdentifier,
-                                password,
-                                { isLoading = false },
-                                { err ->
-                                    isLoading = false
-                                    errorMessage = err
-                                }
-                            )
-                        },
-                        testTag = "submit_login_button"
+                        onClick = { submitLogin() },
+                        testTag = "inline_submit_login_button"
                     )
+
+                    Spacer(modifier = Modifier.height(30.dp))
                 }
             }
         }
