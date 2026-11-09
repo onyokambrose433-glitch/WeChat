@@ -1,0 +1,6 @@
+{
+  "name": "WeChat",
+  "description": "Next-generation social communication and networking platform with real-time messaging, social timeline, communities, and digital identity.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
